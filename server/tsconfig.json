@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "module": "commonjs",
+    "module": "Node16",
     "lib": ["es2022"],
     "allowJs": true,
     "outDir": "./dist",
@@ -17,7 +17,7 @@
     "noImplicitReturns": false,
 
     "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
+    "moduleResolution": "Node16",
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
