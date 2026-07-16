@@ -1,0 +1,1039 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Delivery Control Center</title>
+    <script src="https://unpkg.com/@lucide/web"></script>
+    <style>
+        :root {
+            --bg-base: #0B0F19;
+            --bg-surface: rgba(22, 27, 38, 0.65);
+            --bg-surface-light: rgba(240, 244, 248, 0.75);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-glass-light: rgba(0, 0, 0, 0.06);
+            --text-primary: #F3F4F6;
+            --text-muted: #9CA3AF;
+            --accent-cyan: #06B6D4;
+            --accent-blue: #3B82F6;
+            --accent-emerald: #10B981;
+            --accent-amber: #F59E0B;
+            --accent-rose: #F43F5E;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* App Layout Structure */
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 320px;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(11, 15, 25, 0.98) 100%);
+            border-right: 1px solid var(--border-glass);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            z-index: 10;
+            backdrop-filter: blur(20px);
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        .brand-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+        }
+
+        .brand-logo i {
+            color: #fff;
+            font-size: 20px;
+        }
+
+        .brand-name h1 {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #FFF, #9CA3AF);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-name p {
+            font-size: 11px;
+            color: var(--accent-cyan);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        .nav-sections {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .nav-sections::-webkit-scrollbar {
+            width: 4px;
+        }
+        .nav-sections::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+
+        .nav-item i {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .nav-item:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .nav-item.active {
+            color: #FFF;
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border-color: rgba(6, 182, 212, 0.3);
+            box-shadow: inset 0 0 12px rgba(6, 182, 212, 0.05);
+        }
+
+        .nav-item.active i {
+            color: var(--accent-cyan);
+            filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.5));
+        }
+
+        /* Main Workspace Content Canvas */
+        .main-content {
+            flex: 1;
+            height: 100%;
+            overflow-y: auto;
+            background: radial-gradient(circle at 50% 0%, rgba(17, 24, 39, 0.6) 0%, var(--bg-base) 100%);
+            padding: 32px;
+            position: relative;
+        }
+
+        /* Top Header Utilities Panel */
+        .workspace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            border-bottom: 1px solid var(--border-glass);
+            padding-bottom: 20px;
+        }
+
+        .page-title h2 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .page-title p {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .control-btn {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glass);
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Functional Section Wrappers */
+        .dashboard-section {
+            display: none;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .dashboard-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Component Framework Grid Blocks */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        /* Glassmorphic Panel Cards */
+        .glass-panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel.light-theme-card {
+            background: var(--bg-surface-light);
+            border: 1px solid var(--border-glass-light);
+            color: #1F2937;
+        }
+
+        .glass-panel.light-theme-card .card-title {
+            color: #1F2937;
+        }
+
+        .glass-panel.light-theme-card .metric-value {
+            color: #111827;
+        }
+
+        .card-header-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Global Structural UI Elements */
+        .metric-block {
+            margin-bottom: 16px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #FFF;
+            margin-top: 4px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-online { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+        .status-warning { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+        .status-danger { background: rgba(244, 63, 94, 0.15); color: var(--accent-rose); }
+
+        /* Custom Interactive Blueprint Layouts */
+        .map-mock-container {
+            width: 100%;
+            height: 500px;
+            background: #0F172A;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .map-grid-overlay {
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        .map-vector-route {
+            position: absolute;
+            top: 25%;
+            left: 20%;
+            width: 60%;
+            height: 50%;
+            border: 2px dashed var(--accent-cyan);
+            border-radius: 50% 20% 40% 10%;
+            filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.4));
+        }
+
+        .map-drone-node {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 5;
+        }
+
+        .map-drone-node i {
+            background: var(--accent-cyan);
+            color: #fff;
+            padding: 10px;
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--accent-cyan);
+            animation: pulse-glow 2s infinite;
+        }
+
+        .nofly-zone-circle {
+            position: absolute;
+            top: 15%;
+            left: 65%;
+            width: 140px;
+            height: 140px;
+            background: rgba(244, 63, 94, 0.15);
+            border: 2px solid var(--accent-rose);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-rose);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .custom-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .custom-data-table th {
+            padding: 14px 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-glass);
+            font-weight: 600;
+        }
+
+        .custom-data-table td {
+            padding: 16px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+        }
+
+        .custom-data-table tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .form-input-element {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-glass);
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: #FFF;
+            font-size: 14px;
+            margin-top: 6px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input-element:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .action-button-cta {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-button-cta:hover {
+            opacity: 0.9;
+        }
+
+        .emergency-banner-panel {
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.2) 0%, rgba(11, 15, 25, 0.6) 100%);
+            border: 2px solid var(--accent-rose);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+        }
+
+        .huge-emergency-btn {
+            background: var(--accent-rose);
+            color: #fff;
+            padding: 20px 48px;
+            font-size: 18px;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(244, 63, 94, 0.4);
+            letter-spacing: 1px;
+            transition: transform 0.2s;
+            margin-top: 24px;
+        }
+
+        .huge-emergency-btn:hover {
+            transform: scale(1.02);
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.5); }
+            70% { box-shadow: 0 0 0 15px rgba(6, 182, 212, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+        }
+
+        /* Telemetry Cockpit UI Configurations */
+        .cockpit-hud-wrapper {
+            background: #05070F;
+            border: 1px solid #1E293B;
+            border-radius: 12px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .hud-grid-curves {
+            border: 1px dashed rgba(6, 182, 212, 0.2);
+            border-radius: 50%;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hud-center-line {
+            position: absolute;
+            width: 80%;
+            height: 1px;
+            background: rgba(6, 182, 212, 0.4);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo">
+                    <i data-lucide="navigation"></i>
+                </div>
+                <div class="brand-name">
+                    <h1>AERO-NEXUS</h1>
+                    <p>Logistics Engine</p>
+                </div>
+            </div>
+            <nav class="nav-sections" id="sidebarNav">
+                <div class="nav-item active" data-target="home-section"><i data-lucide="layout-dashboard"></i>🏠 1. Home / Mission Control</div>
+                <div class="nav-item" data-target="delivery-section"><i data-lucide="package"></i>📦 2. Delivery Management</div>
+                <div class="nav-item" data-target="fleet-section"><i data-lucide="plane"></i>🚁 3. Fleet Management</div>
+                <div class="nav-item" data-target="tracking-section"><i data-lucide="map-pin"></i>🗺️ 4. Live Drone Tracking</div>
+                <div class="nav-item" data-target="route-section"><i data-lucide="cpu"></i>🧠 5. AI Route Optimization</div>
+                <div class="nav-item" data-target="weather-section"><i data-lucide="cloud-lightning"></i>🌦️ 6. Weather Intelligence</div>
+                <div class="nav-item" data-target="battery-section"><i data-lucide="battery-charging"></i>🔋 7. Battery Management</div>
+                <div class="nav-item" data-target="emergency-section"><i data-lucide="alert-triangle"></i>⚠️ 8. Emergency Center</div>
+                <div class="nav-item" data-target="analytics-section"><i data-lucide="bar-chart-3"></i>📊 9. Analytics Dashboard</div>
+                <div class="nav-item" data-target="customer-section"><i data-lucide="users"></i>👥 10. Customer Management</div>
+                <div class="nav-item" data-target="warehouse-section"><i data-lucide="home"></i>🏢 11. Warehouse Management</div>
+                <div class="nav-item" data-target="geofence-section"><i data-lucide="shield-alert"></i>📍 12. Geofence & No-Fly Zones</div>
+                <div class="nav-item" data-target="camera-section"><i data-lucide="video"></i>📹 13. Drone Camera Center</div>
+                <div class="nav-item" data-target="notification-section"><i data-lucide="bell"></i>🔔 14. Notification Center</div>
+                <div class="nav-item" data-target="assistant-section"><i data-lucide="bot"></i>🤖 15. AI Assistant</div>
+                <div class="nav-item" data-target="maintenance-section"><i data-lucide="wrench"></i>🛠️ 16. Maintenance Center</div>
+                <div class="nav-item" data-target="globe-section"><i data-lucide="globe"></i>🌍 17. 3D Globe View</div>
+                <div class="nav-item" data-target="package-section"><i data-lucide="qr-code"></i>📦 18. Package Monitoring</div>
+                <div class="nav-item" data-target="telemetry-section"><i data-lucide="gauge"></i>🛰️ 19. Telemetry Dashboard</div>
+                <div class="nav-item" data-target="settings-section"><i data-lucide="settings"></i>⚙️ 20. Settings</div>
+                <div class="nav-item" data-target="mission-section"><i data-lucide="history"></i>🏆 21. Mission History</div>
+                <div class="nav-item" data-target="revenue-section"><i data-lucide="dollar-sign"></i>💰 22. Revenue Dashboard</div>
+                <div class="nav-item" data-target="simulator-section"><i data-lucide="gamepad-2"></i>🧪 23. Drone Simulator</div>
+                <div class="nav-item" data-target="replay-section"><i data-lucide="play-circle"></i>🎮 24. Mission Replay</div>
+                <div class="nav-item" data-target="twin-section"><i data-lucide="layers"></i>🌌 25. Digital Twin</div>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="workspace-header">
+                <div class="page-title">
+                    <h2 id="currentSectionTitle">🏠 1. Home / Mission Control</h2>
+                    <p id="currentSectionDesc">Core telemetry overview and real-time operations command canvas.</p>
+                </div>
+                <div class="header-controls">
+                    <div class="control-btn"><i data-lucide="search"></i></div>
+                    <div class="control-btn"><i data-lucide="bell"></i></div>
+                    <div class="control-btn" style="border-radius: 50%; overflow: hidden; background: #3B82F6; width: 38px; height: 38px; font-weight: bold; font-size: 14px;">JM</div>
+                </div>
+            </header>
+
+            <section id="home-section" class="dashboard-section active">
+                <div class="glass-panel light-theme-card" style="margin-bottom: 24px;">
+                    <div class="card-title">🤖 AI Systems Broadcast</div>
+                    <p style="font-size: 20px; font-weight: 500; margin-top: 8px;">"Welcome back, Captain. All systems operational."</p>
+                    <p style="font-size: 13px; margin-top: 6px; opacity: 0.8;">System parameters stable. 14 long-range autonomous nodes currently deployed across active regional corridors.</p>
+                </div>
+                <div class="grid-3">
+                    <div class="glass-panel">
+                        <div class="metric-label">System Health</div>
+                        <div class="metric-value">98.4%</div>
+                        <div class="status-indicator status-online" style="margin-top: 8px;">Nominal Status</div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="metric-label">Active Deliveries</div>
+                        <div class="metric-value">32 / Hr</div>
+                        <div class="status-indicator status-online" style="margin-top: 8px;">Fluid Operations</div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="metric-label">Weather Risk Factor</div>
+                        <div class="metric-value">Low</div>
+                        <div class="status-indicator status-online" style="margin-top: 8px;">Clear Skies</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="delivery-section" class="dashboard-section">
+                <div class="grid-2">
+                    <div class="glass-panel">
+                        <div class="card-header-main"><span class="card-title">Book New Delivery</span></div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div><label class="metric-label">Pickup Coordinates</label><input type="text" class="form-input-element" value="Warehouse Depot Alpha-6"></div>
+                            <div><label class="metric-label">Destination Address</label><input type="text" class="form-input-element" placeholder="Enter target longitude/latitude or street address"></div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div><label class="metric-label">Package Weight (kg)</label><input type="number" class="form-input-element" value="2.4"></div>
+                                <div><label class="metric-label">Priority</label><input type="text" class="form-input-element" value="Express Flight Path"></div>
+                            </div>
+                            <button class="action-button-cta" style="margin-top: 10px;">Initialize Delivery Blueprint</button>
+                        </div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="card-header-main"><span class="card-title">Active Manifest Pipelines</span></div>
+                        <div class="data-table-wrapper">
+                            <table class="custom-data-table">
+                                <thead>
+                                    <tr><th>Manifest ID</th><th>Destination</th><th>ETA</th><th>Status</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>#DLV-9081</td><td>Zone 4 Grid B</td><td>8 mins</td><td><span class="status-indicator status-online">In Flight</span></td></tr>
+                                    <tr><td>#DLV-9082</td><td>Sector 9 Complex</td><td>14 mins</td><td><span class="status-indicator status-online">In Flight</span></td></tr>
+                                    <tr><td>#DLV-9083</td><td>Depot Delta Point</td><td>2 mins</td><td><span class="status-indicator status-warning">Descending</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="fleet-section" class="dashboard-section">
+                <div class="grid-3">
+                    <div class="glass-panel">
+                        <div class="card-header-main"><span class="card-title">Drone Model: NEXUS-01</span><span class="status-indicator status-online">Active</span></div>
+                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                            <div><span class="metric-label">Telemetry ID:</span> <code>D-90812-A</code></div>
+                            <div><span class="metric-label">Battery Charge:</span> 84%</div>
+                            <div><span class="metric-label">Cruising Velocity:</span> 64 km/h</div>
+                            <div><span class="metric-label">Current Altitude:</span> 112m</div>
+                            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                                <button class="control-btn" title="Take Off" style="flex:1;"><i data-lucide="arrow-up-right"></i></button>
+                                <button class="control-btn" title="Land" style="flex:1;"><i data-lucide="arrow-down-left"></i></button>
+                                <button class="control-btn" title="Return Home" style="flex:1;"><i data-lucide="home"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="card-header-main"><span class="card-title">Drone Model: NEXUS-02</span><span class="status-indicator status-online">Active</span></div>
+                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                            <div><span class="metric-label">Telemetry ID:</span> <code>D-48201-B</code></div>
+                            <div><span class="metric-label">Battery Charge:</span> 71%</div>
+                            <div><span class="metric-label">Cruising Velocity:</span> 58 km/h</div>
+                            <div><span class="metric-label">Current Altitude:</span> 98m</div>
+                            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                                <button class="control-btn" title="Take Off" style="flex:1;"><i data-lucide="arrow-up-right"></i></button>
+                                <button class="control-btn" title="Land" style="flex:1;"><i data-lucide="arrow-down-left"></i></button>
+                                <button class="control-btn" title="Return Home" style="flex:1;"><i data-lucide="home"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="card-header-main"><span class="card-title">Drone Model: TITAN-09</span><span class="status-indicator status-warning">Maintenance</span></div>
+                        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px;">
+                            <div><span class="metric-label">Telemetry ID:</span> <code>D-00129-X</code></div>
+                            <div><span class="metric-label">Battery Charge:</span> 12%</div>
+                            <div><span class="metric-label">Cruising Velocity:</span> 0 km/h</div>
+                            <div><span class="metric-label">Current Altitude:</span> 0m (Grounded)</div>
+                            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                                <button class="control-btn" title="Take Off" style="flex:1;"><i data-lucide="arrow-up-right"></i></button>
+                                <button class="control-btn" title="Land" style="flex:1;"><i data-lucide="arrow-down-left"></i></button>
+                                <button class="control-btn" title="Return Home" style="flex:1;"><i data-lucide="home"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tracking-section" class="dashboard-section">
+                <div class="glass-panel">
+                    <div class="card-header-main"><span class="card-title">Geospatial Telemetry Matrix Map</span></div>
+                    <div class="map-mock-container">
+                        <div class="map-grid-overlay"></div>
+                        <div class="map-vector-route"></div>
+                        <div class="map-drone-node">
+                            <i data-lucide="plane"></i>
+                            <div style="background: rgba(11,15,25,0.9); padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight:bold; margin-top:8px; border:1px solid var(--accent-cyan);">NEXUS-01 (ETA 4m)</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="route-section" class="dashboard-section">
+                <div class="glass-panel light-theme-card" style="margin-bottom: 24px;">
+                    <div class="card-title">🧠 AI Engine System Advisory</div>
+                    <p style="font-size: 18px; font-weight: 500; margin-top: 6px; color:#111827;">"Changing course trajectory along Corridor Blue will save 18% total asset battery life allocation."</p>
+                </div>
+                <div class="grid-2">
+                    <div class="glass-panel">
+                        <div class="card-title">Computed Route Vectors</div>
+                        <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
+                            <div style="border-left: 3px solid var(--accent-emerald); padding-left:12px;">
+                                <div style="font-weight:600; font-size:14px;">Optimal Path Alpha (Weather-Aware)</div>
+                                <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">Bypasses micro-wind shear cells over northern harbor matrix.</div>
+                            </div>
+                            <div style="border-left: 3px solid var(--accent-blue); padding-left:12px;">
+                                <div style="font-weight:600; font-size:14px;">Direct Vector Path (Fastest - Alert Level High)</div>
+                                <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">Cuts directly through peripheral civilian flight terminal boundary zone.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="weather-section" class="dashboard-section">
+                <div class="grid-3">
+                    <div class="glass-panel">
+                        <div class="metric-label">Ambient Air Temp</div>
+                        <div class="metric-value">24.2°C</div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="metric-label">Wind Velocity Vector</div>
+                        <div class="metric-value">12.4 km/h</div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="metric-label">Atmospheric Safety Matrix</div>
+                        <div class="metric-value" style="color: var(--accent-emerald);">SAFE TO FLY</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="battery-section" class="dashboard-section">
+                <div class="glass-panel">
+                    <div class="card-title">Fleet Power Array Telemetry</div>
+                    <div style="display:flex; flex-direction:column; gap:16px; margin-top:20px;">
+                        <div>
+                            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span>Drone Asset D-90812</span><span>84% Capacity Remaining</span></div>
+                            <div class="progress-bar-container"><div class="progress-bar-fill" style="width: 84%;"></div></div>
+                        </div>
+                        <div>
+                            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span>Drone Asset D-48201</span><span>71% Capacity Remaining</span></div>
+                            <div class="progress-bar-container"><div class="progress-bar-fill" style="width: 71%;"></div></div>
+                        </div>
+                        <div>
+                            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px; color:var(--accent-rose);"><span>Drone Asset D-00129</span><span>12% Critical Range Warning</span></div>
+                            <div class="progress-bar-container"><div class="progress-bar-fill" style="width: 12%; background: var(--accent-rose);"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="emergency-section" class="dashboard-section">
+                <div class="emergency-banner-panel">
+                    <i data-lucide="alert-octagon" style="font-size: 48px; color: var(--accent-rose); width:64px; height:64px;"></i>
+                    <h3 style="font-size:24px; font-weight:700; margin-top:16px;">Critical System Interdiction Console</h3>
+                    <p style="color:var(--text-muted); max-width:600px; margin: 8px auto 0;">Immediately broadcast global force-override variables to all active hardware payloads. This will abort active software paths and execute safety recoveries.</p>
+                    <button class="huge-emergency-btn">RETURN ALL ACTIVE DRONES TO BASE</button>
+                </div>
+            </section>
+
+            <section id="analytics-section" class="dashboard-section">
+                <div class="grid-2">
+                    <div class="glass-panel">
+                        <div class="card-title">Macro Fleet Distribution Architecture</div>
+                        <div style="height: 200px; display:flex; align-items:flex-end; gap:16px; margin-top:24px; border-bottom:1px solid var(--border-glass); padding-bottom:8px;">
+                            <div style="flex:1; height:40%; background:linear-gradient(to top, var(--accent-blue), var(--accent-cyan)); border-radius:4px 4px 0 0;"></div>
+                            <div style="flex:1; height:65%; background:linear-gradient(to top, var(--accent-blue), var(--accent-cyan)); border-radius:4px 4px 0 0;"></div>
+                            <div style="flex:1; height:85%; background:linear-gradient(to top, var(--accent-blue), var(--accent-cyan)); border-radius:4px 4px 0 0;"></div>
+                            <div style="flex:1; height:50%; background:linear-gradient(to top, var(--accent-blue), var(--accent-cyan)); border-radius:4px 4px 0 0;"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-top:8px;"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span></div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="card-title">Operational Yield Analysis Metrics</div>
+                        <div style="margin-top:20px; display:flex; flex-direction:column; gap:12px;">
+                            <div><span class="metric-label">Delivery Success Ratio</span><div style="font-size:20px; font-weight:700; margin-top:2px;">99.42%</div></div>
+                            <div><span class="metric-label">Net Carbon Deficit Avoidance</span><div style="font-size:20px; font-weight:700; margin-top:2px;">1,420 kg CO₂</div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="customer-section" class="dashboard-section">
+                <div class="glass-panel">
+                    <div class="card-title">Client Account Directory Logs</div>
+                    <div class="data-table-wrapper" style="margin-top:16px;">
+                        <table class="custom-data-table">
+                            <thead>
+                                <tr><th>Account Holder</th><th>Assigned Grid Location</th><th>Active Logistics Orders</th><th>User Rating</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Alpha Logistics Corp</td><td>Industrial Sector Block 4</td><td>3 Active Manifests</td><td>4.9 / 5.0</td></tr>
+                                <tr><td>OmniRetail Hub</td><td>Downtown Core Node A</td><td>12 Active Manifests</td><td>4.8 / 5.0</td></tr>
+                                <tr><td>MedVitals Medical</td><td>Westside Medical Perimeter</td><td>0 Active Manifests</td><td>5.0 / 5.0</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="warehouse-section" class="dashboard-section">
+                <div class="grid-3">
+                    <div class="glass-panel">
+                        <div class="card-title">Depot Hub Alpha</div>
+                        <p style="font-size: 24px; font-weight:700; margin-top:12px;">142 Units</p>
+                        <span class="metric-label">Packages Staged for Loading</span>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="card-title">Depot Hub Beta</div>
+                        <p style="font-size: 24px; font-weight:700; margin-top:12px;">89 Units</p>
+                        <span class="metric-label">Packages Staged for Loading</span>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="card-title">Charging Dock Status</div>
+                        <p style="font-size: 24px; font-weight:700; margin-top:12px;">12 / 16 Free</p>
+                        <span class="metric-label">Available Inductive Pads</span>
+                    </div>
+                </div>
+            </section>
+
+            <section id="geofence-section" class="dashboard-section">
+                <div class="glass-panel">
+                    <div class="card-header-main"><span class="card-title">Restricted Geospatial Airspaces</span></div>
+                    <div class="map-mock-container">
+                        <div class="map-grid-overlay"></div>
+                        <div class="nofly-zone-circle">AIRPORT INTERDICTION INNER CORE</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="camera-section" class="dashboard-section">
+                <div class="grid-2">
+                    <div class="glass-panel" style="background:#000; height:320px; display:flex; align-items:center; justify-content:center; flex-direction:column; border:1px solid #334155;">
+                        <i data-lucide="eye" style="color:var(--accent-cyan); width:40px; height:40px; margin-bottom:12px;"></i>
+                        <span style="font-size:14px; font-weight:600; color:#FFF;">LIVE PRIMARY STREAM: DRONE-01</span>
+                        <span style="font-size:12px; color:var(--text-muted); margin-top:4px;">HD Optical Feed Overlay Operational</span>
+                    </div>
+                    <div class="glass-panel" style="background:#0F172A; display:flex; flex-direction:column; justify-content:center; gap:16px;">
+                        <div><span class="metric-label">Camera Array Modes</span></div>
+                        <button class="action-button-cta" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-glass);">Simulate Infrared Thermal Overlay</button>
+                        <button class="action-button-cta" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-glass);">Simulate Photovoltaic Night Vision</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="notification-section" class="dashboard-section">
+                <div class="glass-panel">
+                    <div class="card-title">Central System Audit Feed</div>
+                    <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
+                        <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); padding:12px; border-radius:8px; font-size:14px;">
+                            <strong>[DELIVERY RESOLVED]</strong> Manifest #DLV-9081 cleared package payload at destination site successfully.
+                        </div>
+                        <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); padding:12px; border-radius:8px; font-size:14px;">
+                            <strong>[BATTERY DISCHARGE SYSTEM ALERT]</strong> Hardware node D-00129 crossed threshold level down into 12% reserve capacity.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="assistant-section" class="dashboard-section">
+                <div class="glass-panel light-theme-card">
+                    <div class="card-title" style="color:#111827;"><i data-lucide="bot"></i> Automated Flight Coordinator Diagnostics</div>
+                    <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px; font-size:15px; color:#1F2937;">
+                        <p>"Captain, Drone D-07 has completed its mission parameters and is tracking return vectors safely."</p>
+                        <p>"Advisory: Approaching peripheral storm fronts over Route Grid B may cause vector drift."</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="maintenance-section" class="dashboard-section">
+                <div class="glass-panel">
+                    <div class="card-title">Hardware Matrix Health Arrays</div>
+                    <div class="data-table-wrapper" style="margin-top:16px;">
+                        <table class="custom-data-table">
+                            <thead>
+                                <tr><th>Component Node</th><th>Status Value</th><th>Operating Metric</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>Brushless Outrunner Motors</td><td><span class="status-indicator status-online">Optimal</span></td><td>94% Efficiency Scale</td></tr>
+                                <tr><td>Aerodynamic Rotors</td><td><span class="status-indicator status-online">Optimal</span></td><td>0% Structural Fatigue Detected</td></tr>
+                                <th>GPS Receivers / RTK Modules</th><td><span class="status-indicator status-online">Locked</span></td><td>14 Satellites Fixed</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="globe-section" class="dashboard-section">
+                <div class="glass-panel" style="text-align:center; padding:64px 24px;">
+                    <i data-lucide="globe" style="width:64px; height:64px; color:var(--accent-cyan); animation: pulse-glow 3s infinite; border-radius:50%;"></i>
+                    <h3 style="font-size:20px; font-weight:600; margin-top:24px;">Global Scale Distribution Mesh</h3>
+                    <p style="color:var(--text-muted); max-width:500px; margin:8px auto 0;">Rendering dynamic geographic node linkages across multi-region depots. Tracking active macro routes seamlessly across terrain contours.</p>
+                </div>
+            </section>
+
+            <section id="package-section" class="dashboard-section">
+                <div class="glass-panel">
+                    <div class="card-title">Payload Cargo Diagnostics Tracker</div>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px; margin-top:20px;">
+                        <div style="background:rgba(0,0,0,0.2); padding:16px; border-radius:8px; border:1px solid var(--border-glass);">
+                            <span class="metric-label">Asset Tracking ID</span>
+                            <div style="font-weight:700; margin-top:4px;">QR-PKG-9812A</div>
+                            <div style="font-size:13px; color:var(--accent-emerald); margin-top:8px;">Status: Secured inside Loading Bay</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="telemetry-section" class="dashboard-section">
+                <div class="grid-2">
+                    <div class="glass-panel cockpit-hud-wrapper">
+                        <div class="hud-grid-curves">
+                            <div class="hud-center-line"></div>
+                            <div style="color:var(--accent-cyan); font-weight:bold; font-size:14px; z-index:2;">PITCH: 0.0°</div>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; text-align:center;">
+                            <div style="background:rgba(255,255,255,0.02); padding:8px; border-radius:4px;"><span class="metric-label">Roll</span><div style="font-weight:bold; font-size:16px;">0.2°</div></div>
+                            <div style="background:rgba(255,255,255,0.02); padding:8px; border-radius:4px;"><span class="metric-label">Yaw Vector</span><div style="font-weight:bold; font-size:16px;">184.5°</div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="settings-section" class="dashboard-section">
+                <div class="glass-panel" style="max-width:600px;">
+                    <div class="card-title">System Settings Configuration</div>
+                    <div style="display:flex; flex-direction:column; gap:16px; margin-top:20px;">
+                        <div><label class="metric-label">Operator Center Node Name</label><input type="text" class="form-input-element" value="Jeevesh Mishra Control Command"></div>
+                        <div><label class="metric-label">Primary Cryptographic Core API Key</label><input type="password" class="form-input-element" value="••••••••••••••••••••••••"></div>
+                        <button class="action-button-cta" style="align-self: flex-start;">Save Configuration Profile</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="mission-section" class="dashboard-section">
+                <div class="glass-panel">
+                    <div class="card-title">Historical Log Manifest Indexes</div>
+                    <div class="data-table-wrapper" style="margin-top:16px;">
+                        <table class="custom-data-table">
+                            <thead>
+                                <tr><th>Log Index ID</th><th>Asset ID</th><th>Flight Path Segment</th><th>Resolution Code</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td>#MSN-00421</td><td>D-90812</td><td>Hub Alpha to Point Zone 2</td><td><span class="status-indicator status-online">Successful Run</span></td></tr>
+                                <tr><td>#MSN-00420</td><td>D-48201</td><td>Hub Alpha to Grid Sector 5</td><td><span class="status-indicator status-online">Successful Run</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="revenue-section" class="dashboard-section">
+                <div class="grid-3">
+                    <div class="glass-panel">
+                        <div class="metric-label">Diurnal Yield Earnings</div>
+                        <div class="metric-value">$1,240.50</div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="metric-label">Operating Overhead Expense</div>
+                        <div class="metric-value">$142.10</div>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="metric-label">Net Operational Margin</div>
+                        <div class="metric-value" style="color:var(--accent-emerald);">+$1,098.40</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="simulator-section" class="dashboard-section">
+                <div class="glass-panel" style="text-align:center; padding:48px 24px; background:#000; border:1px solid var(--accent-blue);">
+                    <i data-lucide="gamepad-2" style="width:48px; height:48px; color:var(--accent-blue);"></i>
+                    <h3 style="font-size:18px; font-weight:600; margin-top:16px;">Synthetic Drone Sandbox Simulator</h3>
+                    <p style="color:var(--text-muted); font-size:14px; max-width:460px; margin:6px auto 16px;">Map system keyboard controls directly to practice manual vertical takeoffs, standard vector landings, and package release triggers smoothly.</p>
+                    <button class="action-button-cta" style="background:var(--accent-blue);">Boot Hardware Simulation Environment</button>
+                </div>
+            </section>
+
+            <section id="replay-section" class="dashboard-section">
+                <div class="glass-panel">
+                    <div class="card-title">Telemetry Track Reconstruction Terminal</div>
+                    <p style="color:var(--text-muted); font-size:14px; margin-top:4px;">Select any finalized mission parameter run from database histories to reconstruct full positional tracking charts.</p>
+                    <button class="action-button-cta" style="margin-top:16px;"><i data-lucide="play"></i> Compile and Mount Flight Path Recording</button>
+                </div>
+            </section>
+
+            <section id="twin-section" class="dashboard-section">
+                <div class="glass-panel" style="background: linear-gradient(135deg, #0F172A 0%, #020617 100%); border:1px solid rgba(6,182,212,0.3);">
+                    <div class="card-title" style="color:var(--accent-cyan);"><i data-lucide="layers"></i> Core Digital Twin Synchronizer Matrix</div>
+                    <p style="margin-top:12px; font-size:15px; line-height:1.6;">Rendering structural 3D state representations of linked physical assets, loading docks, and spatial parameters in step with regional arrays over telemetry lines.</p>
+                    <div style="margin-top:20px; display:inline-flex; gap:12px; font-size:12px; font-weight:bold; background:rgba(6,182,212,0.1); padding:6px 12px; border-radius:4px; border:1px solid rgba(6,182,212,0.2); color:var(--accent-cyan);">
+                        STATUS: DATA STREAM REFRESH TIMESTAMPS SYNCED (0ms LATENCY)
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // Initialize simple navigation routing functionality for sections
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize lucide icons markup engine replacement
+            lucide.createIcons();
+
+            const navItems = document.querySelectorAll('.nav-item');
+            const sections = document.querySelectorAll('.dashboard-section');
+            const currentSectionTitle = document.getElementById('currentSectionTitle');
+
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    // Remove current active configuration styling state matrices
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    sections.forEach(sec => sec.classList.remove('active'));
+
+                    // Append operational selection parameters update triggers
+                    item.classList.add('active');
+                    const targetId = item.getAttribute('data-target');
+                    const targetSection = document.getElementById(targetId);
+                    
+                    if(targetSection) {
+                        targetSection.classList.add('active');
+                        // Slice string cleanly to derive title parameter updates
+                        currentSectionTitle.textContent = item.textContent;
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
